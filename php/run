@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+set -e
+
+image_names=(
+  "ghcr.io/oliverdaviesltd/php"
+)
+
+latest_php_version="8.1"
+
+supported_php_versions=(
+  "cli"
+  "cli-alpine"
+  "cli-buster"
+  "cli-bullseye"
+
+  "fpm"
+  "fpm-alpine"
+  "fpm-buster"
+  "fpm-bullseye"
+
+  "8.1"
+  "8.1-alpine"
+  "8.1-buster"
+  "8.1-bullseye"
+
+  "8.1-cli"
+  "8.1-cli-alpine"
+  "8.1-cli-buster"
+  "8.1-cli-bullseye"
+
+  "8.1-fpm"
+  "8.1-fpm-alpine"
+  "8.1-fpm-buster"
+  "8.1-fpm-bullseye"
+
+  "8.0"
+  "8.0-alpine"
+  "8.0-buster"
+  "8.0-bullseye"
+
+  "8.0-cli"
+  "8.0-cli-alpine"
+  "8.0-cli-buster"
+  "8.0-cli-bullseye"
+
+  "8.0-fpm"
+  "8.0-fpm-alpine"
+  "8.0-fpm-buster"
+  "8.0-fpm-bullseye"
+
+  "7.4"
+  "7.4-alpine"
+  "7.4-buster"
+  "7.4-bullseye"
+
+  "7.4-cli"
+  "7.4-cli-alpine"
+  "7.4-cli-buster"
+  "7.4-cli-bullseye"
+
+  "7.4-fpm"
+  "7.4-fpm-alpine"
+  "7.4-fpm-buster"
+  "7.4-fpm-bullseye"
+)
+
+ci:build-images() {
+  # Build the Docker images.
+  export DOCKER_BUILDKIT=1
+
+  for php_version in "${supported_php_versions[@]}"; do
+    for image_name in "${image_names[@]}"; do
+      _build_image_for_tag "${image_name}" "${php_version}" &
+
+      if [ "${php_version}" == "${latest_php_version}" ]; then
+        _build_image_for_tag "${image_name}" "latest" &
+      fi
+    done
+  done
+
+  wait
+
+  echo "Done."
+}
+
+ci:push-images() {
+  # Push the Docker images.
+  for image_name in "${image_names[@]}"; do
+    _push_image "${image_name}" &
+  done
+
+  wait
+
+  echo "Done."
+}
+
+_build_image_for_tag() {
+  docker image build . \
+    --build-arg PHP_VERSION="${2}" \
+    --quiet \
+    --tag "${1}:${2}"
+}
+
+_push_image() {
+  docker image push "${1}" --all-tags
+}
+
+TIMEFORMAT=$'\nTask completed in %3lR'
+time "${@}"
