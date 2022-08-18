@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -e
+
+image_names=(
+  "ghcr.io/oliverdaviesltd/node"
+)
+
+latest_node_version="18"
+
+supported_node_versions=(
+    "14"
+    "14-alpine"
+    "14-buster"
+    "14-buster-slim"
+    "14-bullseye"
+    "14-bullseye-slim"
+
+    "16"
+    "16-alpine"
+    "16-buster"
+    "16-buster-slim"
+    "16-bullseye"
+    "16-bullseye-slim"
+
+    "18"
+    "18-alpine"
+    "18-buster"
+    "18-buster-slim"
+    "18-bullseye"
+    "18-bullseye-slim"
+)
+
+ci:build-images() {
+  # Build the Docker images.
+  export DOCKER_BUILDKIT=1
+
+  for node_version in "${supported_node_versions[@]}"; do
+    for image_name in "${image_names[@]}"; do
+      _build_image_for_tag "${image_name}" "${node_version}" &
+
+      if [ "${node_version}" == "${latest_node_version}" ]; then
+        _build_image_for_tag "${image_name}" "latest" &
+      fi
+    done
+  done
+
+  wait
+
+  echo "Done."
+}
+
+ci:push-images() {
+  # Push the Docker images.
+  for image_name in "${image_names[@]}"; do
+    _push_image "${image_name}" &
+  done
+
+  wait
+
+  echo "Done."
+}
+
+_build_image_for_tag() {
+  docker image build . \
+    --build-arg NODE_VERSION="${2}" \
+    --quiet \
+    --tag "${1}:${2}"
+}
+
+_push_image() {
+  docker image push "${1}" --all-tags
+}
+
+TIMEFORMAT=$'\nTask completed in %3lR'
+time "${@}"
