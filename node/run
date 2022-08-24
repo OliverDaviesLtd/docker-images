@@ -69,7 +69,7 @@ _build_image_for_tag() {
 }
 
 _push_image() {
-  docker image push "${1}" --all-tags
+  docker image push "${1}" --all-tags --quiet
 }
 
 TIMEFORMAT=$'\nTask completed in %3lR'
